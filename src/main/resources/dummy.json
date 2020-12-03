@@ -11,5 +11,5 @@
     "fieldName": "addresses",
     "extractorType": "MICROSERVICE_API",
     "extractionProcessType": "PARALLEL",
-    "extractorFieldName": "addresses",
+    "extractorFieldName": "addresses"
   }]
