@@ -21,6 +21,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 public class InsertScript {
     static List<FinalizedDeconfigResponse> deconfigResponseList = new ArrayList<>();
@@ -28,9 +29,14 @@ public class InsertScript {
     private static final Logger LOGGER = LoggerFactory.getLogger(InsertScript.class);
 
     public static void main( String[] args ) throws IOException {
+        Properties properties = getPropValues();
+        String updateUrl = properties.getProperty("updateurl");
+        String patchUrl = properties.getProperty("apisurl");;
+        String finalizedUrl =  properties.getProperty("finalizedurl");
+
         CloseableHttpClient client = HttpClients.createDefault();
-        HttpPatch httpPatch = new HttpPatch("https://internal-dev-idc.infrrdapis.com/de/de-config-apis");
-        HttpPut httpPut = new HttpPut("https://internal-dev-idc.infrrdapis.com/de/de-config");
+        HttpPatch httpPatch = new HttpPatch(patchUrl);
+        HttpPut httpPut = new HttpPut(updateUrl);
 
         JSONParser parser = new JSONParser();
         ObjectMapper objectMapper = new ObjectMapper();
@@ -77,7 +83,7 @@ public class InsertScript {
                    //sending the id to finalized de config as param
                    UpdatedResponse deconfigResponse = g.fromJson(String.valueOf(sb), UpdatedResponse.class);
                    if (deconfigResponse.getMessage().contains("Successfully DEConfig updated")) {
-                       callFinalizedDeConfig(updateBody.getId());
+                       callFinalizedDeConfig(finalizedUrl,updateBody.getId());
                    }else{
                        LOGGER.info("deconfig was finalized for the id : "+ deconfigResponse.getData().getId());
                    }
@@ -106,13 +112,13 @@ public class InsertScript {
     }
 
     //finalized deconfig
-    private  static  void callFinalizedDeConfig(String id){
+    private  static  void callFinalizedDeConfig(String url,String id){
         Gson gson= new Gson();
         CloseableHttpClient httpclient = HttpClients.createDefault();
         try {
 
             HttpUriRequest httppost = RequestBuilder.post()
-                    .setUri(new URI("https://internal-dev-idc.infrrdapis.com/de/finalize-deconfig"))
+                    .setUri(new URI(url))
                     .addParameter("id", id)
                     .build();
 
@@ -140,5 +146,23 @@ public class InsertScript {
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
+    }
+
+    public static Properties getPropValues() throws IOException {
+        Properties prop = new Properties();
+        try {
+            String propFileName = "application.properties";
+            InputStream inputStream;
+            inputStream = InsertScript.class.getClassLoader().getResourceAsStream(propFileName);
+            if (inputStream != null) {
+                prop.load(inputStream);
+            } else {
+                throw new FileNotFoundException("property file '" + propFileName + "' not found in the classpath");
+            }
+
+        } catch (Exception e) {
+            System.out.println("Exception: " + e);
+        }
+        return prop;
     }
 }
